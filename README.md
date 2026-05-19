@@ -1,3 +1,11 @@
+---
+title: AstroBot RAG EndToEnd
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
 # AstroBot — Astronaut Mission Control Assistant
 
 A production-ready RAG chatbot for astronauts powered by the NASA Artemis II Reference Guide.
