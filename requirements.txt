@@ -10,3 +10,4 @@ python-dotenv
 httpx
 pydantic-settings
 rank-bm25
+requests

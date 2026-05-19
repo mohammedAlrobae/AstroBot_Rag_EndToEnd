@@ -4,11 +4,27 @@ Sends queries to the FastAPI backend and displays answers with sources.
 """
 
 import chainlit as cl
-import httpx
+import requests
 import os
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
-TIMEOUT = httpx.Timeout(120.0, connect=10.0)
+
+
+def call_backend(query: str) -> dict:
+    try:
+        response = requests.post(
+            f"{API_URL}/api/chat",
+            json={"query": query},
+            timeout=60
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.ConnectionError:
+        return {"error": "Cannot connect to backend. Check if FastAPI is running."}
+    except requests.exceptions.Timeout:
+        return {"error": "Request timed out. The backend took too long to respond."}
+    except Exception as e:
+        return {"error": f"Unexpected error: {str(e)}"}
 
 
 @cl.on_chat_start
@@ -32,45 +48,25 @@ async def on_message(message: cl.Message):
     msg = cl.Message(content="🔍 *Searching mission database...*")
     await msg.send()
 
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.post(
-                f"{API_URL}/api/chat",
-                json={"query": query},
-            )
+    data = call_backend(query)
 
-            if response.status_code != 200:
-                msg.content = f"❌ Error {response.status_code}: {response.text}"
-                await msg.update()
-                return
-
-            data = response.json()
-            answer = data.get("answer", "No answer received.")
-            sources = data.get("sources", [])
-
-        # Build the response with sources
-        full_response = answer
-
-        if sources:
-            full_response += "\n\n---\n"
-            for src in sources:
-                page = src.get("page", "?")
-                score = src.get("score", 0)
-                full_response += f"\n📄 Source: Artemis II Reference Guide · Page {page} · Score: {score:.0%}"
-
-        msg.content = full_response
+    if "error" in data:
+        msg.content = f"❌ {data['error']}"
         await msg.update()
+        return
 
-    except httpx.ConnectError:
-        msg.content = (
-            "❌ **Cannot connect to AstroBot backend.**\n\n"
-            "Make sure the FastAPI server is running on `http://localhost:8000`.\n\n"
-            "Start it with: `python -m backend.app.main`"
-        )
-        await msg.update()
-    except httpx.TimeoutException:
-        msg.content = "⏱️ Request timed out. Please try again."
-        await msg.update()
-    except Exception as e:
-        msg.content = f"❌ Error: {str(e)}"
-        await msg.update()
+    answer = data.get("answer", "No answer received.")
+    sources = data.get("sources", [])
+
+    # Build the response with sources
+    full_response = answer
+
+    if sources:
+        full_response += "\n\n---\n"
+        for src in sources:
+            page = src.get("page", "?")
+            score = src.get("score", 0)
+            full_response += f"\n📄 Source: Artemis II Reference Guide · Page {page} · Score: {score:.0%}"
+
+    msg.content = full_response
+    await msg.update()
