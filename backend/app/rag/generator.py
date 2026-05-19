@@ -4,11 +4,15 @@ Builds context from retrieved chunks and generates answers.
 """
 
 import logging
+import os
 from groq import Groq
 
 from backend.app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+api_key = os.getenv("GROQ_API_KEY", "")
+logger.info(f"GROQ_API_KEY loaded: {'YES - length ' + str(len(api_key)) if api_key else 'NO - EMPTY'}")
 
 SYSTEM_PROMPT = """You are AstroBot, the personal assistant for astronauts aboard NASA missions.
 You have two knowledge sources:
