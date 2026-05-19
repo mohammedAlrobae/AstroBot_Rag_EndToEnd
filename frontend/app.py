@@ -5,8 +5,9 @@ Sends queries to the FastAPI backend and displays answers with sources.
 
 import chainlit as cl
 import httpx
+import os
 
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 TIMEOUT = httpx.Timeout(120.0, connect=10.0)
 
 
