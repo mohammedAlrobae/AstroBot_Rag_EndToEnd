@@ -7,7 +7,7 @@ langchain-text-splitters==0.0.1
 qdrant-client==1.9.1
 groq==0.4.2
 python-dotenv==1.0.0
-httpx==0.25.2
+httpx==0.24.1
 pydantic==1.10.13
 pydantic-settings==2.0.3
 rank-bm25==0.2.2
