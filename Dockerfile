@@ -2,21 +2,30 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create necessary directories
-RUN mkdir -p /app/backend/app/rag /app/backend/app/core /app/frontend
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
-# Copy application files
 COPY backend /app/backend
 COPY frontend /app/frontend
+COPY chainlit.md /app/chainlit.md
 COPY .env.example /app/.env.example
 
-# Expose ports
-EXPOSE 7860
-EXPOSE 8000
+RUN mkdir -p /app/backend/Data
 
-# Start both FastAPI and Chainlit
-CMD uvicorn backend.app.main:app --host 0.0.0.0 --port ${FASTAPI_PORT:-8000} & chainlit run frontend/app.py --host 0.0.0.0 --port ${CHAINLIT_PORT:-7860}
+EXPOSE 7860 8000
+
+ENV FASTAPI_HOST=0.0.0.0
+ENV FASTAPI_PORT=8000
+ENV API_URL=http://localhost:8000
+
+RUN printf '#!/bin/bash\nuvicorn backend.app.main:app --host 0.0.0.0 --port 8000 &\nsleep 8\nchainlit run frontend/app.py --host 0.0.0.0 --port 7860\n' > /app/start.sh
+RUN chmod +x /app/start.sh
+
+CMD ["/bin/bash", "/app/start.sh"]
